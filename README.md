@@ -15,6 +15,8 @@ cargo build --release
 ```
 
 ## Quick Start
+> [!WARNING]
+> First run of cask will leave the create token route unauthorized. Run cask locally and [create your admin token](#bootstrap-token) before exposing the server.
 
 ```sh
 # Start in foreground
@@ -91,6 +93,14 @@ curl -O http://localhost:8080/v1/artifacts/myapp/1.0.0
 | POST | `/v1/tokens` | Admin | Create token |
 | GET | `/v1/tokens` | Admin | List tokens |
 | DELETE | `/v1/tokens/{id}` | Admin | Revoke token |
+
+<a id="bootstrap-token"></a>
+```sh
+# Create a new token (authorization isnt needed if no tokens exist already)
+curl -X POST http://localhost:8080/v1/tokens \
+  -H "Content-Type: application/json" \
+  -d '{"label": "admin"}'
+```
 
 ### Stats
 
