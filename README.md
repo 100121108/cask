@@ -1,4 +1,4 @@
-# Cask
+# cask
 ![GitHub License](https://img.shields.io/github/license/100121108/cask)
 
 Lightweight, self-hosted artifact hosting server. SQLite-backed with token auth and filesystem storage.
