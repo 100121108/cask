@@ -4,11 +4,20 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::{Json, Router, routing::{delete, get}};
+use serde::Serialize;
 use sqlx::Row;
 
 use crate::auth::RequireToken;
 use crate::error::AppError;
 use crate::state::AppState;
+
+#[derive(Serialize)]
+struct BaseMetadata {
+    sha256: String,
+    created_at: String,
+    #[serde(flatten)]
+    custom: HashMap<String, String>,
+}
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -25,20 +34,32 @@ pub fn routes() -> Router<AppState> {
 async fn get_metadata(
     State(state): State<AppState>,
     Path((name, version)): Path<(String, String)>,
-) -> Result<Json<HashMap<String, String>>, AppError> {
+) -> Result<Json<BaseMetadata>, AppError> {
     let artifact_id = lookup_artifact_id(&state, &name, &version).await?;
+
+    let base_row = sqlx::query("SELECT sha256, created_at FROM artifacts WHERE id = ?")
+        .bind(&artifact_id)
+        .fetch_one(&state.db)
+        .await?;
+
+    let sha256: String = base_row.get("sha256");
+    let created_at: String = base_row.get("created_at");
 
     let rows = sqlx::query("SELECT key, value FROM artifact_metadata WHERE artifact_id = ?")
         .bind(&artifact_id)
         .fetch_all(&state.db)
         .await?;
 
-    let meta: HashMap<String, String> = rows
+    let custom: HashMap<String, String> = rows
         .iter()
         .map(|r| (r.get("key"), r.get("value")))
         .collect();
 
-    Ok(Json(meta))
+    Ok(Json(BaseMetadata {
+        sha256,
+        created_at,
+        custom,
+    }))
 }
 
 async fn set_metadata(
